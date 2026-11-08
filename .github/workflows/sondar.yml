@@ -8,10 +8,10 @@ jobs:
     steps:
       - run: |
           UA="NovosDiscosBot/1.0 (+https://jorgevasco-ui.github.io/novos-discos/)"
-          curl -sL -m 20 -A "$UA" https://hardwax.com/feeds/news.rss | sed 's/<item>/\n<item>/g' | sed -n '2,4p' | cut -c1-1500
-          echo "=== DECKS"
-          curl -sL -m 20 -A "$UA" "https://www.decks.de/decks/workfloor/lists/list_db.php?wo=mgn&now_Sub=mt&now_Was=news&now_Date=nodate&aktuell=0" -o /tmp/d.html
-          iconv -f latin1 -t utf-8 /tmp/d.html > /tmp/d8.html
-          grep -oE 'now_Sub=[a-z]+[^"]*"[^>]*>[^<]{2,40}' /tmp/d8.html | sed -E 's/&now_Date.*>/ -> /' | sort -u | head -80
-          echo "=== DECKS ITEM"
-          n=$(grep -n 'data-code' /tmp/d8.html | head -1 | cut -d: -f1); echo "line $n"; sed -n "$((n-5)),$((n+80))p" /tmp/d8.html | cut -c1-300
+          for c in te tk tc ho hs dh dn db ds du dt dp mi mn am ab el ec bs br ex cd; do
+            curl -sL -m 20 -A "$UA" "https://www.decks.de/decks/workfloor/lists/list_db.php?wo=mgn&now_Sub=$c&now_Was=news&now_Date=lw" -o /tmp/d.html
+            t=$(grep -oiE '<title>[^<]*' /tmp/d.html | head -1); n=$(grep -c 'class="LArtist' /tmp/d.html)
+            styles=$(iconv -f latin1 -t utf-8 /tmp/d.html | grep -oE 'class="LStyle"><a[^>]*>[^<]*' | sed 's/.*>//' | sort | uniq -c | sort -rn | head -6 | tr -s ' \n' ' ')
+            echo "$c | $t | $n items | $styles"
+          done
+          curl -sL -m 20 -A "$UA" "https://www.hhv.de/en/catalog/filter/new-releases" -o /tmp/h.html -w "HHV new-releases HTTP %{http_code} %{size_download}b\n"; head -c 300 /tmp/h.html; echo
