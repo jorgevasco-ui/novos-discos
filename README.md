@@ -1,7 +1,11 @@
 # Novos Discos
 
-Agregador de música lançada nos últimos 15 dias, a partir dos feeds RSS de 8 blogs de música
-(Hipodrome, Bandcamp Daily, Terminal 313, Palms Out, HHV Mag, Truants, UKF, Dubblog).
+Agregador de música lançada nos últimos 15 dias, a partir dos feeds RSS de 15 blogs de música
+(Hipodrome, Bandcamp Daily, Terminal 313, Palms Out, HHV Mag, Truants, UKF, Dubblog, A Closer Listen,
+Igloo Magazine, Headphone Commute, The Ransom Note, Electronic Groove, 5 Mag, Magnetic Mag).
+
+Só entram artigos sobre **um disco concreto** (crítica, estreia ou anúncio) e dentro dos estilos
+escolhidos. Entrevistas, listas, playlists, mixes, notícias de festivais, obituários e reedições antigas ficam de fora.
 
 O site é gerado automaticamente de 6 em 6 horas e publicado de graça no **GitHub Pages**.
 Não precisas de servidor nem de base de dados.
@@ -55,11 +59,25 @@ Tudo está em **`config.mjs`**:
 
 Depois de guardares, o GitHub publica automaticamente a nova versão.
 
+### Filtro de rigor
+Em `config.mjs`, a lista `excludeTitles` tem as expressões que excluem um artigo (ex.: "interview",
+"playlist"). Além disso, o título tem de ter o formato de um disco, por exemplo `Artista – Título`,
+`Artista ~ Título`, `Artista, “Título”` ou `X lança ‘Título’`. Blogs que só publicam críticas
+podem ter `allPosts: true` para saltar esta verificação.
+
+Para perceber porque é que um artigo não apareceu, abre a última execução no separador **Actions**:
+o passo `npm run build` lista todos os artigos incluídos e todos os recusados, com o motivo.
+
+### Testar um blog novo antes de o juntar
+No separador **Actions**, escolhe **Verificar feeds**, carrega em **Run workflow** e cola o endereço do
+feed (ou vários, separados por espaços). O resultado mostra se o feed responde, quantos artigos tem
+e os títulos mais recentes.
+
 ### Como os estilos são atribuídos
-- Cada fonte pode ter estilos fixos (ex.: Terminal 313 → Dub Techno).
+- Cada fonte pode ter estilos fixos (`genres`) ou estilos usados só quando nenhuma palavra-chave encaixa (`defaultGenres`).
 - Além disso, procuramos as palavras-chave de cada estilo no título, nas categorias e no resumo do artigo.
 - `exclusive: true` numa fonte faz com que ela fique só com os seus estilos fixos.
-- Artigos sem nenhum estilo vão para **Outros**.
+- Artigos sem nenhum estilo ficam de fora (ou vão para **Outros**, se `showUnmatched: true`).
 
 ---
 

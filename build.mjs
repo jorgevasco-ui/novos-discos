@@ -7,7 +7,7 @@ import { XMLParser } from "fast-xml-parser";
 import { mkdir, readFile, writeFile, copyFile, readdir } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { site, genres, feeds, fallbackGenre } from "./config.mjs";
+import { site, genres, feeds, fallbackGenre, excludeTitles } from "./config.mjs";
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
@@ -18,7 +18,8 @@ const argValue = (flag) => {
 const FIXTURES = argValue("--fixtures");
 const OUT = join(ROOT, argValue("--out") ?? "dist");
 const NOW = new Date();
-const CUTOFF = new Date(NOW.getTime() - site.days * 24 * 60 * 60 * 1000);
+// Nos testes (--fixtures) não cortamos por data, para os exemplos não "envelhecerem".
+const CUTOFF = FIXTURES ? new Date(0) : new Date(NOW.getTime() - site.days * 24 * 60 * 60 * 1000);
 
 const parser = new XMLParser({
   ignoreAttributes: false,
@@ -63,7 +64,10 @@ const stripHtml = (html) =>
 
 const excerpt = (s, max = 220) => {
   // Remove o rodapé típico do WordPress ("The post X appeared first on Y").
-  s = s.replace(/The post .* appeared first on .*$/i, "").trim();
+  s = s
+    .replace(/The post .* (appeared first|first appeared) on .*$/i, "")
+    .replace(/Read full story on the Bandcamp Daily\s*\.?\s*$/i, "")
+    .trim();
   if (s.length <= max) return s;
   const cut = s.slice(0, max);
   return cut.slice(0, cut.lastIndexOf(" ")).replace(/[\s,.;:–-]+$/, "") + "…";
@@ -99,9 +103,43 @@ function classify(feed, haystack) {
       if (m.include.some((r) => r.test(haystack))) found.add(m.id);
     }
   }
+  if (found.size === 0) for (const g of feed.defaultGenres ?? []) found.add(g);
   if (found.size === 0) found.add(fallbackGenre.id);
   return [...found];
 }
+
+// ---------- filtro de rigor: o artigo é sobre um disco concreto? ----------
+
+const excludeRegex = excludeTitles.map(wordRegex);
+const QUOTE = "[‘“\"'«].+[’”\"'»]";
+const VERBS =
+  "unveils?|releases?|returns?|debuts?|drops?|shares?|announces?|delivers?|presents?|lands?|revisits?|" +
+  "introduces?|joins?|teams? up|links? up|premieres?|launch(es)?|serves? up|offers?|with";
+const releasePatterns = [
+  /\S\s[–—]\s\S/, // Artista – Título
+  /\S\s-\s\S/, // Artista - Título
+  /\S\s~\s\S/, // Artista ~ Título (A Closer Listen)
+  /\S\s::\s\S/, // Artista :: Título (Igloo)
+  new RegExp(`^[^,]+,\\s*${QUOTE}$`), // Artista, “Título” (Bandcamp Daily)
+  /^premiere:/i,
+  new RegExp(`\\b(${VERBS})\\b.*${QUOTE}`, "i"), // X unveils ‘Título’
+  new RegExp(`\\b(${VERBS})\\b.*\\b(new )?(ep|lp|album|single|remix(es)?|12")\\b`, "i"), // X drops new EP
+];
+
+const CURRENT_YEAR = NOW.getFullYear();
+
+function rejectReason(feed, title) {
+  const hit = excludeTitles.find((_, i) => excludeRegex[i].test(title));
+  if (hit) return `exclui "${hit}"`;
+  const years = (title.match(/\b(19|20)\d\d\b/g) ?? []).map(Number);
+  if (years.length && Math.max(...years) < CURRENT_YEAR - (site.maxYearsOld ?? 1)) return `ano antigo (${Math.max(...years)})`;
+  if (feed.allPosts) return null;
+  if (!releasePatterns.some((r) => r.test(title))) return "não parece um disco";
+  return null;
+}
+
+// Terminal 313 dá notas com asteriscos ("***** Artista – Título").
+const prettyTitle = (t) => t.replace(/^\*{1,5}\s+/, (m) => "★".repeat(m.trim().length) + " ");
 
 // ---------- leitura dos feeds ----------
 
@@ -162,7 +200,8 @@ function parseFeed(xml, feed) {
       const date = new Date(it.date);
       const haystack = [it.title, it.categories.join(" "), it.summary].join(" ").toLowerCase();
       return {
-        title: it.title,
+        title: prettyTitle(it.title),
+        reject: rejectReason(feed, it.title),
         link: it.link,
         date,
         summary: excerpt(it.summary),
@@ -177,7 +216,7 @@ function parseFeed(xml, feed) {
 
 // ---------- geração do HTML ----------
 
-const allGenres = [...genres, fallbackGenre];
+const allGenres = site.showUnmatched ? [...genres, fallbackGenre] : genres;
 const genreName = (id) => allGenres.find((g) => g.id === id)?.name ?? id;
 const dateFmt = new Intl.DateTimeFormat("pt-PT", { day: "numeric", month: "short", timeZone: "Europe/Lisbon" });
 const dateTimeFmt = new Intl.DateTimeFormat("pt-PT", { dateStyle: "long", timeStyle: "short", timeZone: "Europe/Lisbon" });
@@ -319,9 +358,15 @@ if (status.every((s) => !s.ok)) {
 
 // Junta, remove duplicados (mesmo link) e ordena do mais recente para o mais antigo.
 const seen = new Set();
+const rejected = [];
 const items = results
   .flatMap((r) => r.items)
   .filter((it) => it.date >= CUTOFF && it.date <= new Date(NOW.getTime() + 36e5))
+  .filter((it) => {
+    if (!it.reject && !site.showUnmatched && it.genres.includes(fallbackGenre.id)) it.reject = "fora dos estilos";
+    if (it.reject) rejected.push(it);
+    return !it.reject;
+  })
   .filter((it) => {
     const key = it.link.replace(/[?#].*$/, "").replace(/\/$/, "");
     if (seen.has(key)) return false;
@@ -338,5 +383,11 @@ for (const f of await readdir(join(ROOT, "src"))) await copyFile(join(ROOT, "src
 
 console.log(`\nArtigos incluídos:`);
 for (const it of items) console.log(`  [${it.source}] ${it.title}  {${it.genres.join(", ")}}${it.image ? "" : "  (sem imagem)"}\n      ${it.summary.slice(0, 160)}`);
+
+console.log(`\nArtigos publicados por fonte:`);
+for (const f of feeds) console.log(`  ${f.name}: ${items.filter((it) => it.source === f.name).length}`);
+
+console.log(`\nArtigos recusados (${rejected.length}):`);
+for (const it of rejected) console.log(`  [${it.source}] ${it.title}  -> ${it.reject}`);
 
 console.log(`\nSite gerado em ${OUT} com ${items.length} artigos.`);
