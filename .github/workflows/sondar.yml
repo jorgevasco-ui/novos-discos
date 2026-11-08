@@ -7,15 +7,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36"
-          for site in https://www.decks.de https://www.hhv.de https://hardwax.com; do
-            echo "################ $site"
-            echo "--- robots.txt"; curl -sL -m 20 -A "$UA" "$site/robots.txt" | head -60
-            echo "--- homepage"; curl -sL -m 20 -A "$UA" -o /tmp/h.html -w "HTTP %{http_code} %{size_download}b %{url_effective}\n" "$site/"
-            grep -oiE '<link[^>]+(rss|atom)[^>]*>' /tmp/h.html | head; grep -oiE 'href="[^"]*(rss|feed|atom)[^"]*"' /tmp/h.html | sort -u | head -20
-            grep -oiE 'href="[^"]*(new|neu|release|this-week|week|genre|techno|dub)[^"]*"' /tmp/h.html | sort -u | head -40
-          done
-          for u in https://www.decks.de/rss https://www.decks.de/decks/rss/ https://www.decks.de/feed https://www.hhv.de/rss https://www.hhv.de/feed https://hardwax.com/rss/ https://hardwax.com/feed/ https://hardwax.com/this-week/ https://hardwax.com/this-week/?rss=1 https://hardwax.com/rss.xml https://hardwax.com/feeds/this-week.xml; do
-            echo "=== $u"; curl -sL -m 20 -A "$UA" -o /tmp/x -w "HTTP %{http_code} %{content_type} %{size_download}b\n" "$u"; head -c 400 /tmp/x | tr '\n' ' '; echo
-          done
-          echo "=== hardwax this-week sample"; curl -sL -m 20 -A "$UA" https://hardwax.com/this-week/ | grep -oE '<(h2|h3|a)[^>]*>[^<]{3,80}</(h2|h3|a)>' | head -40
+          UA="NovosDiscosBot/1.0 (+https://jorgevasco-ui.github.io/novos-discos/)"
+          echo "=== HARDWAX RSS"; curl -sL -m 20 -A "$UA" https://hardwax.com/feeds/news.rss -o /tmp/hw.xml -w "HTTP %{http_code} %{size_download}b\n"
+          grep -c "<item>" /tmp/hw.xml; head -c 3500 /tmp/hw.xml; echo
+          grep -oE "<pubDate>[^<]*" /tmp/hw.xml | sort | uniq -c | head -20
+          grep -oE "<category>[^<]*" /tmp/hw.xml | sort | uniq -c | sort -rn | head -30
+          echo "=== DECKS list"; curl -sL -m 20 -A "$UA" "https://www.decks.de/decks/workfloor/lists/list_db.php?wo=mgn&now_Sub=mt&now_Was=news&now_Date=nodate&aktuell=0" -o /tmp/d.html -w "HTTP %{http_code} %{size_download}b\n"
+          grep -oiE '<title>[^<]*' /tmp/d.html; sed 's/<[^>]*>/ /g' /tmp/d.html | tr -s ' \t' ' ' | grep -v '^ *$' | sed -n '60,140p' | cut -c1-160
+          echo "=== DECKS home genres"; curl -sL -m 20 -A "$UA" https://www.decks.de/ | grep -oE 'now_Sub=[a-z]+[^>]*>[^<]{2,40}' | sort -u | head -40
