@@ -6,13 +6,5 @@ jobs:
   sondar:
     runs-on: ubuntu-latest
     steps:
-      - run: |
-          set +e
-          UA="NovosDiscosBot/1.0 (+https://jorgevasco-ui.github.io/novos-discos/)"
-          curl -sS -m 20 -A "$UA" -H "Content-Type: application/json" -X POST https://bandcamp.com/api/discover/1/discover_web \
-            -d '{"category_id":0,"tag_norm_names":["dub-techno"],"geoname_id":0,"slice":"new","cursor":"*","size":5,"include_result_types":["a","s"]}' -o /tmp/b.json -w "OUT %{http_code}\n"
-          python3 -c "
-import json;d=json.load(open('/tmp/b.json'));print('OUT keys',list(d.keys()))
-r=d.get('results',[]);print('OUT n',len(r))
-print("OUT", json.dumps(r[:2])[:2500])
-          " 
+      - uses: actions/checkout@v4
+      - run: python3 sonda.py
