@@ -61,6 +61,11 @@ Tudo está em **`config.mjs`**:
 
 Depois de guardares, o GitHub publica automaticamente a nova versão.
 
+### Botões "Procurar"
+Cada disco tem botões que abrem a pesquisa no Bandcamp, Juno, HHV e Decks com o artista e o título.
+Estas lojas não deixam ler as novidades automaticamente, por isso usamos só ligações de pesquisa.
+Para mudar ou acrescentar lojas, edita a lista `shopSearch` em `config.mjs`.
+
 ### Filtro de rigor
 Em `config.mjs`, a lista `excludeTitles` tem as expressões que excluem um artigo (ex.: "interview",
 "playlist"). Além disso, o título tem de ter o formato de um disco, por exemplo `Artista – Título`,

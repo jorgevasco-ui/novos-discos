@@ -62,6 +62,18 @@ export const excludeTitles = [
 ];
 
 // ---------------------------------------------------------------------
+//  BOTÕES "PROCURAR NA LOJA"
+//  Cada disco mostra estes botões, que abrem a pesquisa da loja com o
+//  artista e o título. {q} é substituído pelo texto a procurar.
+// ---------------------------------------------------------------------
+export const shopSearch = [
+  { name: "Bandcamp", url: "https://bandcamp.com/search?q={q}" },
+  { name: "Juno", url: "https://www.juno.co.uk/search/?q%5Ball%5D%5B%5D={q}" },
+  { name: "HHV", url: "https://www.hhv.de/en/search?term={q}" },
+  { name: "Decks", url: "https://www.decks.de/decks/workfloor/search_db.php?wosuch=all&wassuch=atl&such={q}" },
+];
+
+// ---------------------------------------------------------------------
 //  FONTES (feeds RSS)
 //  `genres`: estilos que TODOS os artigos desta fonte recebem.
 //  `defaultGenres`: estilos usados só quando nenhuma palavra-chave encaixa.

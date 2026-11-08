@@ -9,7 +9,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { site, genres, feeds, fallbackGenre, excludeTitles } from "./config.mjs";
+import { site, genres, feeds, fallbackGenre, excludeTitles, shopSearch } from "./config.mjs";
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
@@ -297,6 +297,34 @@ const genreName = (id) => allGenres.find((g) => g.id === id)?.name ?? id;
 const dateFmt = new Intl.DateTimeFormat("pt-PT", { day: "numeric", month: "short", timeZone: "Europe/Lisbon" });
 const dateTimeFmt = new Intl.DateTimeFormat("pt-PT", { dateStyle: "long", timeStyle: "short", timeZone: "Europe/Lisbon" });
 
+// Texto a procurar nas lojas: "Artista Título", sem notas, prefixos e parênteses.
+function searchQuery(title) {
+  let t = title
+    .replace(/^★+\s*/, "")
+    .replace(/^(premiere|track by track|\[[^\]]*\])\s*:?\s*/i, "")
+    .replace(/\s*[\[(][^\])]*[\])]/g, " ")
+    .replace(/\s*[\[(][^\])]*$/, "")
+    .replace(/[\u200b]/g, "");
+  const sep = t.match(/^(.+?)\s(?:[–—~-]|::)\s(.+)$/) ?? t.match(/^([^:‘“"]{2,40}):\s+([^:]+)$/);
+  if (sep) t = `${sep[1]} ${sep[2]}`;
+  else {
+    const quoted = t.match(/[‘“"«](.+?)[’”"»]/);
+    const verb = t.match(new RegExp(`^(.+?)\\s+\\b(${VERBS})\\b`, "i"));
+    const comma = t.match(/^([^,]+),\s*[‘“"«]/);
+    if (quoted) t = `${(comma ?? verb)?.[1] ?? ""} ${quoted[1]}`;
+  }
+  return t.replace(/\b(feat|ft)\.|\b(ep|lp|\d?lp|vinyl only|repress|feat|ft)\b|12"/gi, " ").replace(/\s+/g, " ").trim();
+}
+
+function shopLinks(it) {
+  const q = encodeURIComponent(searchQuery(it.title));
+  if (!q) return "";
+  return `<p class="shops"><span>Procurar:</span>${shopSearch
+    .filter((s) => !it.source.toLowerCase().startsWith(s.name.toLowerCase()))
+    .map((s) => `<a href="${escapeHtml(s.url.replace("{q}", q))}" target="_blank" rel="noopener nofollow">${escapeHtml(s.name)}</a>`)
+    .join("")}</p>`;
+}
+
 function card(it) {
   const img = it.image
     ? `<img src="${escapeHtml(it.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentElement.classList.add('noimg');this.remove()">`
@@ -309,6 +337,7 @@ function card(it) {
         <h2><a href="${escapeHtml(it.link)}" target="_blank" rel="noopener">${escapeHtml(it.title)}</a></h2>
         ${it.summary ? `<p class="summary">${escapeHtml(it.summary)}</p>` : ""}
         <p class="tags">${it.genres.map((g) => `<span>${escapeHtml(genreName(g))}</span>`).join("")}</p>
+        ${shopLinks(it)}
       </div>
     </article>`;
 }
