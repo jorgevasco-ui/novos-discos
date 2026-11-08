@@ -9,10 +9,10 @@ jobs:
       - run: |
           set +e
           UA="NovosDiscosBot/1.0 (+https://jorgevasco-ui.github.io/novos-discos/)"
-          curl -sL -m 20 -A "$UA" https://www.decks.de/ | iconv -f latin1 -t utf-8 > /tmp/h.html
-          grep -n -oE '.{0,250}technonews.{0,250}' /tmp/h.html | sed 's/^/OUT /' | head -5
-          grep -oE "list_db\.php\?[^\"' ]*" /tmp/h.html | sed 's/&amp;/\&/g' | sort | uniq -c | sort -rn | sed 's/^/OUT3 /' | head -40
-          for u in "list_db.php?wo=ten&now_Sub=te&now_Was=news&now_Date=lw" "list_db.php?wo=tec&now_Was=news&now_Date=lw" "list_db.php?wo=ten&now_Was=news" ; do
-            curl -sL -m 20 -A "$UA" "https://www.decks.de/decks/workfloor/lists/$u" -o /tmp/d.html
-            echo "OUT4 $u | $(grep -oiE '<title>[^<]*' /tmp/d.html | head -1) | $(grep -c 'class="LArtist' /tmp/d.html) | $(iconv -f latin1 -t utf-8 /tmp/d.html | grep -oE 'class="LStyle"><a[^>]*>[^<]*' | sed 's/.*>//' | sort | uniq -c | sort -rn | head -8 | tr -s ' \n' ' ')"
+          for w in hon ban bln jcn trn sfn; do
+            curl -sL -m 20 -A "$UA" "https://www.decks.de/decks/workfloor/lists/list_db.php?wo=$w&now_Was=news&now_Date=lw" -o /tmp/d.html
+            echo "OUT4 $w | $(grep -oiE '<title>[^<]*' /tmp/d.html | head -1) | $(grep -c 'class="LArtist' /tmp/d.html) | $(iconv -f latin1 -t utf-8 /tmp/d.html | grep -oE 'class="LStyle"><a[^>]*>[^<]*' | sed 's/.*>//' | sort | uniq -c | sort -rn | head -8 | tr -s ' \n' ' ')"
           done
+          curl -sL -m 20 -A "$UA" "https://www.decks.de/decks/workfloor/lists/list_db.php?wo=ten&now_Was=news&now_Date=lw" | iconv -f latin1 -t utf-8 > /tmp/t.html
+          n=$(grep -n 'class="oneLine' /tmp/t.html | sed -n 2p | cut -d: -f1); m=$(grep -n 'class="oneLine' /tmp/t.html | sed -n 3p | cut -d: -f1)
+          sed -n "${n},${m}p" /tmp/t.html | grep -v "^\s*$" | sed 's/^/OUT5 /' | cut -c1-260
