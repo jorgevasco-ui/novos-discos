@@ -7,6 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
+          set +e
           UA="NovosDiscosBot/1.0 (+https://jorgevasco-ui.github.io/novos-discos/)"
           for c in te tk tc ho hs dh dn db ds du dt dp mi mn am ab el ec bs br ex cd; do
             curl -sL -m 20 -A "$UA" "https://www.decks.de/decks/workfloor/lists/list_db.php?wo=mgn&now_Sub=$c&now_Was=news&now_Date=lw" -o /tmp/d.html
