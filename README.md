@@ -1,6 +1,6 @@
 # Novos Discos
 
-Agregador de música lançada nos últimos 5 dias, a partir dos feeds RSS de 8 blogs de música
+Agregador de música lançada nos últimos 15 dias, a partir dos feeds RSS de 8 blogs de música
 (Hipodrome, Bandcamp Daily, Terminal 313, Palms Out, HHV Mag, Truants, UKF, Dubblog).
 
 O site é gerado automaticamente de 6 em 6 horas e publicado de graça no **GitHub Pages**.

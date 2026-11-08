@@ -7,7 +7,7 @@ export const site = {
   title: "Novos Discos",
   tagline: "Os discos novos que os melhores blogs de música andam a destacar.",
   // Quantos dias para trás mostrar.
-  days: 5,
+  days: 15,
   // Endereço público do site (usado no feed RSS). Atualiza depois de publicar.
   url: "https://jorgevasco-ui.github.io/novos-discos/",
   language: "pt-PT",
