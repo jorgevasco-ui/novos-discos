@@ -132,7 +132,8 @@ const releasePatterns = [
 const CURRENT_YEAR = NOW.getFullYear();
 
 function rejectReason(feed, title) {
-  const hit = excludeTitles.find((_, i) => excludeRegex[i].test(title));
+  // Nas lojas, cada entrada é um disco: palavras como "Gallery" ou "Best Of" são nomes de discos.
+  const hit = feed.kind === "loja" ? null : excludeTitles.find((_, i) => excludeRegex[i].test(title));
   if (hit) return `exclui "${hit}"`;
   const years = (title.match(/\b(19|20)\d\d\b/g) ?? []).map(Number);
   if (years.length && Math.max(...years) < CURRENT_YEAR - (site.maxYearsOld ?? 1)) return `ano antigo (${Math.max(...years)})`;
@@ -182,7 +183,10 @@ async function fetchWithCurl(url, encoding) {
 
 const titleCase = (s) =>
   s === s.toUpperCase() && /[A-Z]/.test(s)
-    ? s.toLowerCase().replace(/(^|[\s(\-/"'.])(\p{L})/gu, (_, a, b) => a + b.toUpperCase())
+    ? s
+        .toLowerCase()
+        .replace(/(^|[\s(\-/"'.])(\p{L})/gu, (_, a, b) => a + b.toUpperCase())
+        .replace(/\b(\d*)(lp|ep|cd|va|dj|mc|uk|usa|ltd)\b/gi, (_, n, w) => n + w.toUpperCase())
     : s;
 
 async function loadDecks(feed, index) {
