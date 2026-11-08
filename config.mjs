@@ -5,7 +5,7 @@
 
 export const site = {
   title: "Novos Discos",
-  tagline: "Os discos novos que os melhores blogs de música andam a destacar.",
+  tagline: "Discos novos, escolhidos pelos melhores blogs de música e lojas de vinil.",
   // Quantos dias para trás mostrar.
   days: 15,
   // Endereço público do site (usado no feed RSS).
@@ -68,6 +68,7 @@ export const excludeTitles = [
 //  `exclusive: true`: a fonte fica só com `genres` (ignora palavras-chave).
 //  `allPosts: true`: todos os artigos contam como discos (blogs que só
 //     publicam críticas, ex.: Dubblog). Sem isto, aplica-se o filtro de rigor.
+//  `kind: "loja"`: aparece no filtro "Lojas" em vez de "Blogs".
 // ---------------------------------------------------------------------
 export const feeds = [
   // Escolhidas pelo Jorge
@@ -88,4 +89,21 @@ export const feeds = [
   { name: "Electronic Groove", url: "https://www.electronicgroove.com/category/news/feed/", defaultGenres: ["techno"] },
   { name: "5 Mag", url: "https://www.5mag.net/feed/", defaultGenres: ["house-disco"] },
   { name: "Magnetic Mag", url: "https://www.magneticmag.com/feed/" },
+
+  // Lojas de discos (novidades)
+  { name: "Hard Wax", kind: "loja", url: "https://hardwax.com/feeds/news.rss", titleFormat: "colon", allPosts: true, defaultGenres: ["techno"] },
+  {
+    // A Decks.de não tem RSS: lemos as listas de novidades dos últimos 14 dias
+    // (permitido pelo robots.txt da loja). Cada endereço é um estilo da loja.
+    name: "Decks.de",
+    kind: "loja",
+    type: "decks",
+    url: "https://www.decks.de/",
+    allPosts: true,
+    pages: [
+      "https://www.decks.de/decks/workfloor/lists/list_db.php?wo=ten&now_Was=news&now_Date=tw", // Techno
+      "https://www.decks.de/decks/workfloor/lists/list_db.php?wo=hon&now_Was=news&now_Date=tw", // House
+      "https://www.decks.de/decks/workfloor/lists/list_db.php?wo=ban&now_Was=news&now_Date=tw", // Drum & Bass
+    ],
+  },
 ];

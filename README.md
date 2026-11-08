@@ -1,6 +1,8 @@
 # Novos Discos
 
-Agregador de música lançada nos últimos 15 dias, a partir dos feeds RSS de 15 blogs de música
+Agregador de música lançada nos últimos 15 dias, a partir das novidades de 2 lojas de vinil
+(**Hard Wax**, pelo feed RSS oficial, e **Decks.de**, pelas listas de novidades de Techno, House e
+Drum & Bass) e dos feeds RSS de 15 blogs de música
 (Hipodrome, Bandcamp Daily, Terminal 313, Palms Out, HHV Mag, Truants, UKF, Dubblog, A Closer Listen,
 Igloo Magazine, Headphone Commute, The Ransom Note, Electronic Groove, 5 Mag, Magnetic Mag).
 

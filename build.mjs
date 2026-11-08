@@ -67,6 +67,7 @@ const excerpt = (s, max = 220) => {
   s = s
     .replace(/The post .* (appeared first|first appeared) on .*$/i, "")
     .replace(/Read full story on the Bandcamp Daily\s*\.?\s*$/i, "")
+    .replace(/\s*Tracklisting:.*$/i, "")
     .trim();
   if (s.length <= max) return s;
   const cut = s.slice(0, max);
@@ -147,7 +148,11 @@ async function loadFeedXml(feed, index) {
   if (FIXTURES) {
     return readFile(join(ROOT, FIXTURES, `${index}.xml`), "utf8");
   }
-  const res = await fetch(feed.url, {
+  return fetchText(feed.url);
+}
+
+async function fetchText(url, encoding) {
+  const res = await fetch(url, {
     headers: {
       "User-Agent": "NovosDiscosBot/1.0 (agregador de RSS; +" + site.url + ")",
       Accept: "application/rss+xml, application/atom+xml, application/xml;q=0.9, */*;q=0.8",
@@ -155,7 +160,54 @@ async function loadFeedXml(feed, index) {
     signal: AbortSignal.timeout(20000),
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (encoding) return new TextDecoder(encoding).decode(await res.arrayBuffer());
   return res.text();
+}
+
+// ---------- Decks.de (loja sem RSS: lemos as listas de novidades) ----------
+
+const titleCase = (s) =>
+  s === s.toUpperCase() && /[A-Z]/.test(s)
+    ? s.toLowerCase().replace(/(^|[\s(\-/"'.])(\p{L})/gu, (_, a, b) => a + b.toUpperCase())
+    : s;
+
+async function loadDecks(feed, index) {
+  const pages = FIXTURES
+    ? [await readFile(join(ROOT, FIXTURES, `${index}.html`), "utf8")]
+    : await Promise.all(feed.pages.map((u) => fetchText(u, "windows-1252")));
+  const items = [];
+  for (const html of pages) {
+    for (const block of html.split(/<div class="oneLine\b/).slice(1)) {
+      const pick = (re) => (block.match(re)?.[1] ?? "").trim();
+      const artist = stripHtml(pick(/class="LArtist[^"]*">([\s\S]*?)<\/div>/));
+      const title = stripHtml(pick(/class="LTitel[^"]*">([\s\S]*?)<\/div>/));
+      const path = pick(/href="(\/track\/[^"]+)"/);
+      const rel = pick(/class="RelFeature">\s*(\d\d\.\d\d\.\d\d)/);
+      if (!artist || !title || !path || !rel) continue;
+      const [d, m, y] = rel.split(".").map(Number);
+      const styles = [...block.matchAll(/class="LStyle"><a[^>]*>([^<]+)</g)]
+        .map((x) => decodeEntities(x[1]).trim())
+        .filter((x) => !/^(1st at decks|vinyl only|repress|presale)$/i.test(x));
+      const format = stripHtml(pick(/class="LFormat[^"]*"><span>([^<]*)/));
+      const label = stripHtml(pick(/class="LLabel maxOneLine">([^<]*)/));
+      const cat = stripHtml(pick(/class="LLabelcat maxOneLine">([^<]*)/));
+      const memo = stripHtml(pick(/class="LMemo[^"]*">([\s\S]*?)<\/div>/));
+      items.push({
+        title: `${titleCase(artist)} – ${titleCase(title)}`,
+        link: "https://www.decks.de" + path,
+        // Data de lançamento indicada pela loja (meio-dia UTC, para não mudar de dia).
+        date: new Date(Date.UTC(2000 + y, m - 1, d, 12)).toISOString(),
+        categories: styles,
+        summary: [[format, [label, cat].filter(Boolean).join(" ")].filter(Boolean).join(" · "), memo && memo[0].toUpperCase() + memo.slice(1)]
+          .filter(Boolean)
+          .join(" — "),
+        image: pick(/<img class="lazy"[^>]*src="([^"]+)"/),
+      });
+    }
+  }
+  // A mesma referência pode aparecer em várias listas (ex.: Techno e House).
+  const seen = new Set();
+  return normalize(items.filter((it) => !seen.has(it.link) && seen.add(it.link)), feed);
 }
 
 function parseFeed(xml, feed) {
@@ -195,6 +247,11 @@ function parseFeed(xml, feed) {
     });
   }
 
+  if (feed.titleFormat === "colon") for (const it of items) it.title = it.title.replace(/^([^:]+):\s+/, "$1 – ");
+  return normalize(items, feed);
+}
+
+function normalize(items, feed) {
   return items
     .map((it) => {
       const date = new Date(it.date);
@@ -207,6 +264,7 @@ function parseFeed(xml, feed) {
         summary: excerpt(it.summary),
         image: isHttpUrl(it.image) ? it.image : "",
         source: feed.name,
+        kind: feed.kind ?? "blog",
         sourceUrl: new URL(feed.url).origin,
         genres: classify(feed, haystack),
       };
@@ -226,7 +284,7 @@ function card(it) {
     ? `<img src="${escapeHtml(it.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentElement.classList.add('noimg');this.remove()">`
     : "";
   return `
-    <article class="card" data-genres="${it.genres.join(" ")}" data-source="${escapeHtml(it.source)}" data-search="${escapeHtml((it.title + " " + it.summary + " " + it.source).toLowerCase())}">
+    <article class="card" data-genres="${it.genres.join(" ")}" data-source="${escapeHtml(it.source)}" data-kind="${it.kind}" data-search="${escapeHtml((it.title + " " + it.summary + " " + it.source).toLowerCase())}">
       <a class="cover${it.image ? "" : " noimg"}" href="${escapeHtml(it.link)}" target="_blank" rel="noopener">${img}</a>
       <div class="body">
         <p class="meta"><span class="source">${escapeHtml(it.source)}</span> · <time datetime="${it.date.toISOString()}">${dateFmt.format(it.date)}</time></p>
@@ -271,9 +329,21 @@ function page(items, status) {
   <div class="chips" role="group" aria-label="Estilo">${chips}</div>
   <div class="row">
     <input id="q" type="search" placeholder="Procurar artista, editora…" aria-label="Procurar">
+    <select id="kind" aria-label="Tipo">
+      <option value="">Blogs e lojas</option>
+      <option value="blog">Só críticas (blogs)</option>
+      <option value="loja">Só novidades das lojas</option>
+    </select>
     <select id="src" aria-label="Fonte">
       <option value="">Todas as fontes</option>
-      ${usedSources.map((s) => `<option>${escapeHtml(s)}</option>`).join("")}
+      ${["blog", "loja"]
+        .map((k) => {
+          const names = usedSources.filter((n) => (feeds.find((f) => f.name === n).kind ?? "blog") === k);
+          return names.length
+            ? `<optgroup label="${k === "loja" ? "Lojas" : "Blogs"}">${names.map((n) => `<option>${escapeHtml(n)}</option>`).join("")}</optgroup>`
+            : "";
+        })
+        .join("")}
     </select>
   </div>
 </nav>
@@ -327,8 +397,7 @@ ${it.genres.map((g) => `<category>${x(genreName(g))}</category>`).join("")}
 const results = await Promise.all(
   feeds.map(async (feed, i) => {
     try {
-      const xml = await loadFeedXml(feed, i);
-      const items = parseFeed(xml, feed);
+      const items = feed.type === "decks" ? await loadDecks(feed, i) : parseFeed(await loadFeedXml(feed, i), feed);
       return { feed, items, ok: true };
     } catch (err) {
       return { feed, items: [], ok: false, error: err.message };

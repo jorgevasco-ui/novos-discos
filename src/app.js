@@ -5,6 +5,7 @@
   var chips = Array.prototype.slice.call(document.querySelectorAll(".chip"));
   var q = document.getElementById("q");
   var src = document.getElementById("src");
+  var kind = document.getElementById("kind");
   var count = document.getElementById("count");
   var empty = document.getElementById("empty");
   var genre = "";
@@ -13,6 +14,7 @@
     var p = new URLSearchParams(location.hash.slice(1));
     genre = p.get("estilo") || "";
     src.value = p.get("fonte") || "";
+    kind.value = p.get("tipo") || "";
     q.value = p.get("q") || "";
   }
 
@@ -20,6 +22,7 @@
     var p = new URLSearchParams();
     if (genre) p.set("estilo", genre);
     if (src.value) p.set("fonte", src.value);
+    if (kind.value) p.set("tipo", kind.value);
     if (q.value.trim()) p.set("q", q.value.trim());
     var h = p.toString();
     history.replaceState(null, "", h ? "#" + h : location.pathname + location.search);
@@ -32,6 +35,7 @@
       var ok =
         (!genre || (" " + c.dataset.genres + " ").indexOf(" " + genre + " ") >= 0) &&
         (!src.value || c.dataset.source === src.value) &&
+        (!kind.value || c.dataset.kind === kind.value) &&
         (!term || c.dataset.search.indexOf(term) >= 0);
       c.hidden = !ok;
       if (ok) shown++;
@@ -54,6 +58,7 @@
   });
   q.addEventListener("input", apply);
   src.addEventListener("change", apply);
+  kind.addEventListener("change", apply);
 
   // Datas relativas ("hoje", "ontem", "há 3 dias") calculadas no browser.
   var today = new Date();

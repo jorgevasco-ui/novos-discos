@@ -74,7 +74,7 @@ a { color: inherit; }
   border: 1px solid var(--line); border-radius: var(--radius); padding: 9px 12px; min-width: 0;
 }
 .row input { flex: 1; }
-.row select { flex: 0 1 220px; }
+.row select { flex: 0 1 200px; }
 
 /* Grelha */
 .count { color: var(--muted); font-size: 14px; margin: 16px 0 12px; }
