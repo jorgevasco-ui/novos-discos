@@ -7,6 +7,8 @@ import { XMLParser } from "fast-xml-parser";
 import { mkdir, readFile, writeFile, copyFile, readdir } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { site, genres, feeds, fallbackGenre, excludeTitles } from "./config.mjs";
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
@@ -164,6 +166,18 @@ async function fetchText(url, encoding) {
   return res.text();
 }
 
+// A Decks.de (Cloudflare) recusa o fetch do Node mas aceita o curl, que existe
+// nos servidores do GitHub. Lemos as páginas com o curl.
+const execFileP = promisify(execFile);
+async function fetchWithCurl(url, encoding) {
+  const { stdout } = await execFileP(
+    "curl",
+    ["-sSL", "--fail", "-m", "25", "-A", "NovosDiscosBot/1.0 (+" + site.url + ")", url],
+    { encoding: "buffer", maxBuffer: 20 * 1024 * 1024 }
+  );
+  return new TextDecoder(encoding).decode(stdout);
+}
+
 // ---------- Decks.de (loja sem RSS: lemos as listas de novidades) ----------
 
 const titleCase = (s) =>
@@ -174,7 +188,7 @@ const titleCase = (s) =>
 async function loadDecks(feed, index) {
   const pages = FIXTURES
     ? [await readFile(join(ROOT, FIXTURES, `${index}.html`), "utf8")]
-    : await Promise.all(feed.pages.map((u) => fetchText(u, "windows-1252")));
+    : await Promise.all(feed.pages.map((u) => fetchWithCurl(u, "windows-1252")));
   const items = [];
   for (const html of pages) {
     for (const block of html.split(/<div class="oneLine\b/).slice(1)) {
