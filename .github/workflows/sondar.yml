@@ -8,10 +8,10 @@ jobs:
     steps:
       - run: |
           UA="NovosDiscosBot/1.0 (+https://jorgevasco-ui.github.io/novos-discos/)"
-          echo "=== HARDWAX RSS"; curl -sL -m 20 -A "$UA" https://hardwax.com/feeds/news.rss -o /tmp/hw.xml -w "HTTP %{http_code} %{size_download}b\n"
-          grep -c "<item>" /tmp/hw.xml; head -c 3500 /tmp/hw.xml; echo
-          grep -oE "<pubDate>[^<]*" /tmp/hw.xml | sort | uniq -c | head -20
-          grep -oE "<category>[^<]*" /tmp/hw.xml | sort | uniq -c | sort -rn | head -30
-          echo "=== DECKS list"; curl -sL -m 20 -A "$UA" "https://www.decks.de/decks/workfloor/lists/list_db.php?wo=mgn&now_Sub=mt&now_Was=news&now_Date=nodate&aktuell=0" -o /tmp/d.html -w "HTTP %{http_code} %{size_download}b\n"
-          grep -oiE '<title>[^<]*' /tmp/d.html; sed 's/<[^>]*>/ /g' /tmp/d.html | tr -s ' \t' ' ' | grep -v '^ *$' | sed -n '60,140p' | cut -c1-160
-          echo "=== DECKS home genres"; curl -sL -m 20 -A "$UA" https://www.decks.de/ | grep -oE 'now_Sub=[a-z]+[^>]*>[^<]{2,40}' | sort -u | head -40
+          curl -sL -m 20 -A "$UA" https://hardwax.com/feeds/news.rss | sed 's/<item>/\n<item>/g' | sed -n '2,4p' | cut -c1-1500
+          echo "=== DECKS"
+          curl -sL -m 20 -A "$UA" "https://www.decks.de/decks/workfloor/lists/list_db.php?wo=mgn&now_Sub=mt&now_Was=news&now_Date=nodate&aktuell=0" -o /tmp/d.html
+          iconv -f latin1 -t utf-8 /tmp/d.html > /tmp/d8.html
+          grep -oE 'now_Sub=[a-z]+[^"]*"[^>]*>[^<]{2,40}' /tmp/d8.html | sed -E 's/&now_Date.*>/ -> /' | sort -u | head -80
+          echo "=== DECKS ITEM"
+          n=$(grep -n 'data-code' /tmp/d8.html | head -1 | cut -d: -f1); echo "line $n"; sed -n "$((n-5)),$((n+80))p" /tmp/d8.html | cut -c1-300
