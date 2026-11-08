@@ -9,10 +9,7 @@ jobs:
       - run: |
           set +e
           UA="NovosDiscosBot/1.0 (+https://jorgevasco-ui.github.io/novos-discos/)"
-          for w in hon ban bln jcn trn sfn; do
-            curl -sL -m 20 -A "$UA" "https://www.decks.de/decks/workfloor/lists/list_db.php?wo=$w&now_Was=news&now_Date=lw" -o /tmp/d.html
-            echo "OUT4 $w | $(grep -oiE '<title>[^<]*' /tmp/d.html | head -1) | $(grep -c 'class="LArtist' /tmp/d.html) | $(iconv -f latin1 -t utf-8 /tmp/d.html | grep -oE 'class="LStyle"><a[^>]*>[^<]*' | sed 's/.*>//' | sort | uniq -c | sort -rn | head -8 | tr -s ' \n' ' ')"
-          done
-          curl -sL -m 20 -A "$UA" "https://www.decks.de/decks/workfloor/lists/list_db.php?wo=ten&now_Was=news&now_Date=lw" | iconv -f latin1 -t utf-8 > /tmp/t.html
-          n=$(grep -n 'class="oneLine' /tmp/t.html | sed -n 2p | cut -d: -f1); m=$(grep -n 'class="oneLine' /tmp/t.html | sed -n 3p | cut -d: -f1)
-          sed -n "${n},${m}p" /tmp/t.html | grep -v "^\s*$" | sed 's/^/OUT5 /' | cut -c1-260
+          curl -sL -m 20 -A "$UA" https://bandcamp.com/robots.txt | sed 's/^/OUT R /' | head -60
+          curl -sL -m 20 -A "$UA" -o /tmp/t -w "OUT terms %{http_code}\n" https://bandcamp.com/terms_of_use
+          sed 's/<[^>]*>/ /g' /tmp/t | tr -s ' \n' ' ' | grep -oiE '.{0,200}(robot|spider|scrap|crawl|automated).{0,200}' | head -6 | sed 's/^/OUT T /'
+          curl -sL -m 20 -A "$UA" -o /tmp/d -w "OUT discover %{http_code} %{content_type}\n" "https://bandcamp.com/discover/dub-techno"
