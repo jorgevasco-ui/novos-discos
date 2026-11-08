@@ -10,5 +10,9 @@ jobs:
           set +e
           UA="NovosDiscosBot/1.0 (+https://jorgevasco-ui.github.io/novos-discos/)"
           curl -sL -m 20 -A "$UA" https://www.decks.de/ | iconv -f latin1 -t utf-8 > /tmp/h.html
-          grep -oE 'href="[^"]*"[^>]*>[^<]{2,40}' /tmp/h.html | sed -E 's/^href="([^"]*)"[^>]*>(.*)/OUT \2 => \1/' | grep -iE "techno|house|dub|drum|minimal|ambient|electro|news|genre" | sort -u | head -60
-          grep -oiE '[^"]{0,120}(techno|drum ?& ?bass|dubstep)[^"]{0,60}' /tmp/h.html | sed 's/^/OUT2 /' | head -20
+          grep -n -oE '.{0,250}technonews.{0,250}' /tmp/h.html | sed 's/^/OUT /' | head -5
+          grep -oE "list_db\.php\?[^\"' ]*" /tmp/h.html | sed 's/&amp;/\&/g' | sort | uniq -c | sort -rn | sed 's/^/OUT3 /' | head -40
+          for u in "list_db.php?wo=ten&now_Sub=te&now_Was=news&now_Date=lw" "list_db.php?wo=tec&now_Was=news&now_Date=lw" "list_db.php?wo=ten&now_Was=news" ; do
+            curl -sL -m 20 -A "$UA" "https://www.decks.de/decks/workfloor/lists/$u" -o /tmp/d.html
+            echo "OUT4 $u | $(grep -oiE '<title>[^<]*' /tmp/d.html | head -1) | $(grep -c 'class="LArtist' /tmp/d.html) | $(iconv -f latin1 -t utf-8 /tmp/d.html | grep -oE 'class="LStyle"><a[^>]*>[^<]*' | sed 's/.*>//' | sort | uniq -c | sort -rn | head -8 | tr -s ' \n' ' ')"
+          done
