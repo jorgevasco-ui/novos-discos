@@ -336,4 +336,7 @@ await writeFile(join(OUT, "feed.xml"), rss(items));
 await writeFile(join(OUT, "status.json"), JSON.stringify({ updated: NOW.toISOString(), feeds: status }, null, 2));
 for (const f of await readdir(join(ROOT, "src"))) await copyFile(join(ROOT, "src", f), join(OUT, f));
 
+console.log(`\nArtigos incluídos:`);
+for (const it of items) console.log(`  [${it.source}] ${it.title}  {${it.genres.join(", ")}}${it.image ? "" : "  (sem imagem)"}\n      ${it.summary.slice(0, 160)}`);
+
 console.log(`\nSite gerado em ${OUT} com ${items.length} artigos.`);
